@@ -1,11 +1,136 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Compteur de Syllabes</title>
+    <title>Analyseur de Syllabes</title>
     <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        .editor-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .line-analysis {
+            display: grid;
+            grid-template-columns: 40px 40px 60px 1fr;
+            gap: 10px;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            color: #666;
+            align-items: center;
+        }
+
+        .line-analysis.has-content {
+            color: #000;
+        }
+
+        .line-number {
+            color: #888;
+            font-size: 0.9em;
+            text-align: right;
+        }
+
+        .syllable-count {
+            font-weight: bold;
+            color: #2196F3;
+            text-align: center;
+            transition: color 0.3s;
+        }
+
+        .rhyme {
+            font-weight: bold;
+            text-align: center;
+            font-family: 'Monaco', 'Consolas', monospace;
+            transition: color 0.3s;
+        }
+
+        .line-text {
+            font-family: 'Monaco', 'Consolas', monospace;
+            min-height: 1.5em;
+            padding: 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            cursor: text;
+        }
+
+        .line-text:empty::before {
+            content: attr(placeholder);
+            color: #999;
+        }
+
+        .line-text:hover {
+            background-color: #f5f5f5;
+        }
+
+        .line-text:focus {
+            background-color: #e8f0fe;
+            outline: none;
+        }
+
+        .add-line-btn {
+            margin-top: 20px;
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .add-line-btn:hover {
+            background-color: #1976D2;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .copy-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #fff;
+            color: #2196F3;
+            border: 1px solid #2196F3;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .copy-button:hover {
+            background-color: #f5f5f5;
+        }
+
+        .copy-button.copied {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .copy-icon {
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Compteur de Syllabes</h1>
+    <h1>Analyseur de Syllabes</h1>
     <script src="syllableCounter.js"></script>
 </body>
 </html> 
