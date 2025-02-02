@@ -177,42 +177,74 @@ function createSyllableCounter() {
         });
     }
 
-    function createNewLine(initialText = '') {
+    function createNewLine(initialText = '', insertAfter = null) {
         const div = document.createElement('div');
         div.className = 'line-analysis';
         div.innerHTML = `
-            <span class="line-number">${analysis.children.length + 1}</span>
+            <span class="line-number"></span>
             <span class="line-text" contenteditable="true" placeholder="Écrivez ici...">${initialText}</span>
-            <span class="syllable-count">0</span>
-            <span class="rhyme">-</span>
+            <span class="syllable-count"></span>
+            <span class="rhyme"></span>
         `;
         
         const lineText = div.querySelector('.line-text');
         const syllableCount = div.querySelector('.syllable-count');
         const rhymeSpan = div.querySelector('.rhyme');
+        const lineNumber = div.querySelector('.line-number');
+
+        function updateLineNumbers() {
+            let currentNumber = 1;
+            Array.from(analysis.children).forEach(line => {
+                const text = line.querySelector('.line-text').textContent.trim();
+                const numberSpan = line.querySelector('.line-number');
+                if (text) {
+                    numberSpan.textContent = currentNumber++;
+                } else {
+                    numberSpan.textContent = '';
+                }
+            });
+        }
 
         lineText.addEventListener('input', () => {
             const text = lineText.textContent.trim();
             const words = text.split(/\s+/);
-            const syllables = words.reduce((total, word) => {
-                return total + (word ? countSyllables(word) : 0);
-            }, 0);
             
-            const lastWord = words[words.length - 1];
-            const rhyme = lastWord ? getRhyme(lastWord) : '-';
+            if (!text) {
+                syllableCount.textContent = '';
+                rhymeSpan.textContent = '';
+                div.classList.remove('has-content');
+            } else {
+                const syllables = words.reduce((total, word) => {
+                    return total + (word ? countSyllables(word) : 0);
+                }, 0);
+                
+                const lastWord = words[words.length - 1];
+                const rhyme = lastWord ? getRhyme(lastWord) : '';
+                
+                syllableCount.textContent = syllables;
+                rhymeSpan.textContent = rhyme;
+                div.classList.add('has-content');
+            }
             
-            syllableCount.textContent = syllables;
-            rhymeSpan.textContent = rhyme;
-            div.classList.toggle('has-content', text.length > 0);
-            
+            updateLineNumbers();
             updateColors();
+            checkGrouping();
         });
 
         lineText.addEventListener('keydown', (e) => {
             const currentLine = div;
             if (e.key === 'Enter') {
                 e.preventDefault();
-                createNewLine();
+                // Insérer la nouvelle ligne après la ligne courante
+                const nextLine = currentLine.nextElementSibling;
+                const newLine = createNewLine('', currentLine);
+                if (nextLine) {
+                    analysis.insertBefore(newLine, nextLine);
+                } else {
+                    analysis.appendChild(newLine);
+                }
+                // Focus sur la nouvelle ligne
+                newLine.querySelector('.line-text').focus();
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 const prev = currentLine.previousElementSibling;
@@ -227,16 +259,61 @@ function createSyllableCounter() {
                 } else {
                     createNewLine();
                 }
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (!lineText.textContent.trim()) {
+                    e.preventDefault();
+                    const next = currentLine.nextElementSibling;
+                    const prev = currentLine.previousElementSibling;
+                    currentLine.remove();
+                    if (next) {
+                        next.querySelector('.line-text').focus();
+                    } else if (prev) {
+                        prev.querySelector('.line-text').focus();
+                    }
+                    updateLineNumbers();
+                    checkGrouping();
+                }
             }
         });
 
-        analysis.appendChild(div);
+        // Si insertAfter est spécifié, insérer après cet élément
+        if (insertAfter) {
+            const nextLine = insertAfter.nextElementSibling;
+            if (nextLine) {
+                analysis.insertBefore(div, nextLine);
+            } else {
+                analysis.appendChild(div);
+            }
+        } else {
+            analysis.appendChild(div);
+        }
+
         lineText.focus();
 
-        // Déclencher l'événement input si on a du texte initial
         if (initialText) {
             lineText.dispatchEvent(new Event('input'));
         }
+
+        return div;
+    }
+
+    function checkGrouping() {
+        const lines = Array.from(analysis.children);
+        lines.forEach((line, index) => {
+            const text = line.querySelector('.line-text').textContent.trim();
+            const nextLine = lines[index + 1];
+            
+            if (nextLine) {
+                const nextText = nextLine.querySelector('.line-text').textContent.trim();
+                if (text && nextText) {
+                    line.classList.add('group-with-next');
+                } else {
+                    line.classList.remove('group-with-next');
+                }
+            } else {
+                line.classList.remove('group-with-next');
+            }
+        });
     }
 
     // Créer la première ligne

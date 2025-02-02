@@ -27,10 +27,20 @@
             padding: 2px 8px;
             color: #666;
             align-items: center;
+            margin-bottom: 8px;
         }
 
-        .line-analysis.has-content {
-            color: #000;
+        .line-analysis.group-with-next {
+            margin-bottom: 2px;
+        }
+
+        .line-analysis:not(.has-content) {
+            color: #999;
+        }
+
+        .line-analysis:not(.has-content) .syllable-count,
+        .line-analysis:not(.has-content) .rhyme {
+            display: none;
         }
 
         .line-number {
