@@ -59,7 +59,7 @@ function updateAnalysis(elements) {
     const lastWords = lines.map(line => {
         if (!line.trim()) return null;
         const lastWord = line.trim()
-            .replace(/\s+!/g, '!')
+            .replace(/\s+[!?]/g, '')  // Gérer les espaces avant ! et ?
             .split(/\s+/)
             .pop();
         const cleanWord = lastWord ? lastWord.replace(/[.,!?;:\s]/g, '') : '';
@@ -76,7 +76,7 @@ function updateAnalysis(elements) {
         }
         
         const lastWord = line.trim()
-            .replace(/\s+!/g, '!')
+            .replace(/\s+[!?]/g, '')  // Gérer les espaces avant ! et ?
             .split(/\s+/)
             .pop();
         const cleanWord = lastWord ? lastWord.replace(/[.,!?;:\s]/g, '') : '';
@@ -178,19 +178,57 @@ function setupEventListeners(elements) {
         }
     });
 
-    // Fonction pour coller du texte
+    // Permettre le collage direct mais nettoyer le texte
+    editor.addEventListener('paste', (e) => {
+        e.preventDefault();
+        
+        // Récupérer uniquement le texte brut du presse-papiers
+        const text = e.clipboardData.getData('text/plain');
+        
+        // Nettoyer le texte en conservant les lignes vides
+        const cleanText = text
+            .split('\n')
+            .map(line => {
+                if (!line.trim()) return '';  // Conserver les lignes vides
+                return line
+                    .replace(/[^\w\s.,!?;:'"\-éèêëàâïîôûùç]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            })
+            .join('\n');  // Joindre avec des sauts de ligne
+
+        // Insérer le texte nettoyé à la position du curseur
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(document.createTextNode(cleanText));
+        }
+        
+        updateAnalysis(elements);
+    });
+
+    // Modifier la fonction de collage du bouton aussi
     pasteButton.addEventListener('click', async () => {
         try {
             const text = await navigator.clipboard.readText();
-            const lines = text.split('\n').filter(line => line.trim());
             
-            editor.innerText = '';
-            lines.forEach(line => {
-                editor.innerText += line.trim() + '\n';
-            });
+            // Nettoyer le texte en conservant les lignes vides
+            const cleanText = text
+                .split('\n')
+                .map(line => {
+                    if (!line.trim()) return '';  // Conserver les lignes vides
+                    return line
+                        .replace(/[^\w\s.,!?;:'"\-éèêëàâïîôûùç]/g, '')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                })
+                .join('\n');
             
+            editor.textContent = cleanText;
             updateAnalysis(elements);
             
+            // Feedback visuel
             pasteButton.classList.add('pasted');
             pasteButton.textContent = '✓ Collé !';
             setTimeout(() => {

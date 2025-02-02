@@ -71,8 +71,9 @@ function getRhyme(word) {
         word = convertNumberToText(word);
     }
     
+    // Nettoyer le mot de la ponctuation, y compris "?"
     word = word.toLowerCase()
-        .replace(/[.,!?;:…\s]/g, '')
+        .replace(/[.,!?;:…\s]+$/, '')  // Ponctuation à la fin
         .replace(/[«»""''\-]/g, '');
     
     word = word.replace(/s$/, '');
