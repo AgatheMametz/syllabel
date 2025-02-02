@@ -52,7 +52,7 @@
         }
 
         .syllable-count, .rhyme {
-            width: 50px;
+            width: auto;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -68,10 +68,46 @@
         }
 
         .rhyme {
-            font-weight: bold;
-            text-align: center;
+            position: relative;
             font-family: 'Monaco', 'Consolas', monospace;
-            transition: color 0.3s;
+            text-align: right;
+            padding-right: 10px;
+        }
+
+        .rich-part {
+            color: #666;
+        }
+
+        .common-part {
+            color: #999;
+        }
+
+        .rhyme[data-rhyme]:not([data-rhyme=""]) .common-part {
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 2px;
+        }
+
+        .full-rhyme {
+            display: inline-block;
+        }
+
+        .poor-rhyme {
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            opacity: 0.7;
+            font-size: 0.8em;
+            text-align: center;
+        }
+
+        .highlighted-poor-rhyme {
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 2px;
         }
 
         .line-text {
@@ -164,7 +200,7 @@
 
         .editor-wrapper {
             display: grid;
-            grid-template-columns: 30px minmax(0, 1fr) 100px;
+            grid-template-columns: 30px minmax(0, 1fr) 200px;
             gap: 10px;
             align-items: start;
         }
@@ -199,7 +235,7 @@
 
         .analysis-column {
             display: grid;
-            grid-template-columns: 50px 50px;
+            grid-template-columns: 50px 150px;
         }
 
         .syllable-count {
@@ -219,6 +255,7 @@
 </head>
 <body>
     <h1>Analyseur de Syllabes</h1>
+    <script src="rime.js"></script>
     <script src="syllableCounter.js"></script>
 </body>
 </html> 
