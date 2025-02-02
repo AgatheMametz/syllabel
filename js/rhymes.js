@@ -9,10 +9,35 @@ function normalizeEnding(word) {
         // Cas spéciaux de prononciation
         { pattern: /pays?$/, replacement: 'péi' },     // pays -> péi
         
-        // Sons en "i"
+        // Sons complexes (traités en premier et dans l'ordre)
+        { pattern: /eill?e?s?$/, replacement: 'eil' }, // sommeil, réveil -> eil
+        { pattern: /[eè]ils?$/, replacement: 'eil' },  // soleil -> eil
+        
+        { pattern: /iens?$/, replacement: 'ien' },     // tien, rien -> ien
+        { pattern: /[iy]ens?$/, replacement: 'ien' },  // mien, citoyen -> ien
+        
+        { pattern: /[oe]urs?$/, replacement: 'eur' },  // coeur, répondeur -> eur
+        { pattern: /eurs?$/, replacement: 'eur' },     // danseur -> eur
+        
+        // Autres sons
+        { pattern: /gie?s?$/, replacement: 'ji' },     // nostalgie -> ji
+        { pattern: /chi[st]?$/, replacement: 'chi' },  // franchis -> chi
+        { pattern: /ice?s?$/, replacement: 'is' },     // malice, maléfices -> is
+        { pattern: /ix?$/, replacement: 'i' },         // dix, prix -> i
+        { pattern: /is?$/, replacement: 'i' },         // gris, vie -> i
         { pattern: /id$/, replacement: 'i' },          // nid -> i
         { pattern: /it$/, replacement: 'i' },          // petit -> i
-        { pattern: /i$/, replacement: 'i' },           // ami -> i
+        
+        // Sons en "one/onne"
+        { pattern: /phones?$/, replacement: 'fone' },  // téléphone -> fone
+        { pattern: /onnes?$/, replacement: 'one' },    // pardonne -> one
+        
+        // Sons en "è/ê"
+        { pattern: /êts?$/, replacement: 'è' },        // forêt -> è
+        { pattern: /ets?$/, replacement: 'è' },        // muet -> è
+        { pattern: /ais$/, replacement: 'è' },         // mais -> è
+        { pattern: /est$/, replacement: 'è' },         // est -> è
+        { pattern: /aie?s?$/, replacement: 'è' },      // vraie -> è
         
         // Sons nasaux
         { pattern: /[aâeê]nts?$/, replacement: 'en' }, // temps, enfants
@@ -20,8 +45,12 @@ function normalizeEnding(word) {
         { pattern: /[aâeê]mps?$/, replacement: 'en' }, // temps, champs
         { pattern: /[aâeê]ns?$/, replacement: 'en' },  // an, en
         
-        // Sons en "er/ère"
-        { pattern: /([^fè])er$/, replacement: 'é' },   // er -> é sauf après f ou è
+        // Sons en "er/é"
+        { pattern: /er$/, replacement: 'é' },          // déposer -> é
+        { pattern: /ez$/, replacement: 'é' },          // assez -> é
+        { pattern: /é[es]?$/, replacement: 'é' },      // été -> é
+        
+        // Sons en "ère"
         { pattern: /fer$/, replacement: 'ère' },       // fer -> ère
         { pattern: /fère?s?$/, replacement: 'ère' },   // fère(s) -> ère
         { pattern: /ère?s?$/, replacement: 'ère' },    // ère(s) -> ère
@@ -141,11 +170,22 @@ function findCommonEndings(words) {
     // Liste des sons qui peuvent former une rime même seuls
     const validSingleSounds = new Set(['i', 'é', 'è', 'a', 'o', 'u', 'r', 'l', 'm', 'n']);
     
+    // Liste des sons complexes qui doivent être considérés comme une unité
+    const validComplexSounds = new Set([
+        'eil',  // Mettre les plus longs en premier
+        'ien',
+        'eur',
+        'out',
+        'one',
+        'ère',
+        'en'
+    ]);
+    
     for (let i = 0; i < words.length; i++) {
         if (usedWords.has(words[i])) continue;
         
         const currentGroup = [words[i]];
-        let minCommonLength = words[i].length;
+        let maxCommonLength = 0;  // On cherche maintenant la plus grande longueur commune
         
         for (let j = i + 1; j < words.length; j++) {
             if (usedWords.has(words[j])) continue;
@@ -155,20 +195,22 @@ function findCommonEndings(words) {
             
             // Accepter si :
             // - Les mots sont identiques
+            // - La terminaison commune est un son complexe valide
             // - La terminaison commune fait au moins 2 caractères
-            // - OU c'est un son valide même seul
+            // - OU c'est un son simple valide
             if (words[i] === words[j] || 
+                validComplexSounds.has(commonEnd) ||
                 length >= 2 || 
                 (length === 1 && validSingleSounds.has(commonEnd))) {
                 currentGroup.push(words[j]);
-                minCommonLength = Math.min(minCommonLength, length);
+                maxCommonLength = Math.max(maxCommonLength, length);  // On prend la plus grande longueur
             }
         }
         
         if (currentGroup.length > 1) {
             groups.push({
                 words: currentGroup,
-                commonLength: minCommonLength
+                commonLength: maxCommonLength  // On utilise la plus grande longueur
             });
             currentGroup.forEach(w => usedWords.add(w));
         }
