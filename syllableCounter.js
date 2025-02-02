@@ -61,109 +61,54 @@ function findCommonEndings(words) {
         return length;
     }
     
-    // Trouver les groupes de rimes adjacentes
+    // Trouver tous les groupes de mots qui riment ensemble
     const groups = [];
-    let currentGroup = [words[0]];
-    let currentLength = 0;
+    const usedWords = new Set();
     
-    for (let i = 1; i < words.length; i++) {
-        const length = getLongestCommonSuffixLength(words[i-1], words[i]);
+    for (let i = 0; i < words.length; i++) {
+        if (usedWords.has(words[i])) continue;
         
-        // Si on a une rime riche (2+ caractères) ou une rime pauvre (1 caractère)
-        if (length >= 2 || (length === 1 && words[i-1].slice(-1).match(/[éèêëàâïîôûù]/))) {
-            if (length > currentLength) {
-                // Si on trouve une meilleure rime, on recommence le groupe
-                if (currentGroup.length > 1) {
-                    groups.push({
-                        words: currentGroup,
-                        commonLength: currentLength
-                    });
-                }
-                currentGroup = [words[i-1], words[i]];
-                currentLength = length;
-            } else {
-                currentGroup.push(words[i]);
+        const currentGroup = [words[i]];
+        let minCommonLength = words[i].length;
+        
+        // Comparer avec tous les autres mots
+        for (let j = i + 1; j < words.length; j++) {
+            if (usedWords.has(words[j])) continue;
+            
+            const length = getLongestCommonSuffixLength(words[i], words[j]);
+            // Si c'est le même mot ou s'il y a une rime suffisante
+            if (words[i] === words[j] || length >= 2 || 
+                (length === 1 && words[i].slice(-1).match(/[éèêëàâïîôûù]/))) {
+                currentGroup.push(words[j]);
+                minCommonLength = Math.min(minCommonLength, length);
             }
-        } else {
-            if (currentGroup.length > 1) {
-                groups.push({
-                    words: currentGroup,
-                    commonLength: currentLength
-                });
-            }
-            currentGroup = [words[i]];
-            currentLength = 0;
+        }
+        
+        if (currentGroup.length > 1) {
+            groups.push({
+                words: currentGroup,
+                commonLength: minCommonLength
+            });
+            currentGroup.forEach(w => usedWords.add(w));
         }
     }
     
-    if (currentGroup.length > 1) {
-        groups.push({
-            words: currentGroup,
-            commonLength: currentLength
-        });
-    }
-    
-    // Convertir les groupes en résultat final
     return groups.map(group => ({
         words: group.words,
         common: group.words[0].slice(-group.commonLength)
     }));
 }
 
-function normalizeEnding(word) {
-    // Normaliser les terminaisons en é/er/et/ées/ée et autres cas similaires
-    const normalizations = [
-        // Terminaisons en é
-        { pattern: /ées?$/, replacement: 'é' },
-        { pattern: /er$/, replacement: 'é' },
-        { pattern: /et$/, replacement: 'é' },
-        
-        // Terminaisons avec e muet final
-        { pattern: /([^aeiouyéèêëàâïîôûù])e$/, replacement: '$1' },  // e muet après consonne
-        { pattern: /([^aeiouyéèêëàâïîôûù])es$/, replacement: '$1' }, // es muet après consonne
-        
-        // Cas spéciaux de consonnes finales
-        { pattern: /re$/, replacement: 'r' },
-        { pattern: /me$/, replacement: 'm' },
-        { pattern: /le$/, replacement: 'l' },
-        { pattern: /te$/, replacement: 't' },
-        { pattern: /ne$/, replacement: 'n' },
-        
-        // Pluriels de ces cas
-        { pattern: /res$/, replacement: 'r' },
-        { pattern: /mes$/, replacement: 'm' },
-        { pattern: /les$/, replacement: 'l' },
-        { pattern: /tes$/, replacement: 't' },
-        { pattern: /nes$/, replacement: 'n' }
-    ];
-
-    // Appliquer les normalisations dans l'ordre
-    for (const {pattern, replacement} of normalizations) {
-        if (word.match(pattern)) {
-            return word.replace(pattern, replacement);
-        }
-    }
-    
-    return word;
-}
-
 function getRhyme(word) {
     if (!word) return '';
     
-    // Nettoyer la ponctuation et mettre en minuscules
-    word = word.toLowerCase().replace(/[.,!?;:\s]/g, '');
+    // Nettoyer TOUTE la ponctuation et mettre en minuscules
+    word = word.toLowerCase()
+        .replace(/[.,!?;:…\s]/g, '')  // Ajout des points de suspension
+        .replace(/[«»""''\-]/g, '');  // Ajout des guillemets et tirets
     
     // Retirer le 's' final (pluriel)
     word = word.replace(/s$/, '');
-
-    // Vérifier si le mot est une exception pour "ent"
-    const isEntException = ENT_EXCEPTIONS.has(word) || 
-                          ENT_EXCEPTIONS.has(word.replace(/s$/, ''));
-
-    // Gérer les terminaisons verbales en "ent" seulement si ce n'est pas une exception
-    if (word.endsWith('ent') && !isEntException) {
-        word = word.slice(0, -3) + 'e';
-    }
 
     // Normaliser les terminaisons
     word = normalizeEnding(word);
@@ -173,6 +118,70 @@ function getRhyme(word) {
         rich: '',  // Sera déterminé plus tard
         common: '' // Sera déterminé plus tard
     };
+}
+
+function normalizeEnding(word) {
+    // Vérifier si le mot est une exception pour "ent"
+    const isEntException = ENT_EXCEPTIONS.has(word) || 
+                          ENT_EXCEPTIONS.has(word.replace(/s$/, ''));
+
+    if (!isEntException) {
+        // Traiter d'abord les terminaisons verbales
+        const verbEndings = [
+            { pattern: /issent$/, replacement: 'is' },  // finissent -> finis
+            { pattern: /oncent$/, replacement: 'once' }, // enfoncent -> enfonce
+            { pattern: /ent$/, replacement: 'e' }  // marchent -> marche
+        ];
+
+        for (const {pattern, replacement} of verbEndings) {
+            if (word.match(pattern)) {
+                word = word.replace(pattern, replacement);
+                break;  // Sortir après la première correspondance
+            }
+        }
+    }
+
+    // Normaliser les sons similaires
+    const soundNormalizations = [
+        // Sons en "s"
+        { pattern: /ss/g, replacement: 'c' },  // ss -> c
+        { pattern: /[çc]e/g, replacement: 'se' }, // ce, çe -> se
+        { pattern: /[çc]é/g, replacement: 'sé' }, // cé, çé -> sé
+        { pattern: /[çc]i/g, replacement: 'si' }, // ci, çi -> si
+        
+        // Autres équivalences phonétiques
+        { pattern: /ph/g, replacement: 'f' },
+        { pattern: /gh/g, replacement: 'g' },
+        { pattern: /qu/g, replacement: 'k' },
+        { pattern: /gu(?=[ei])/g, replacement: 'g' }
+    ];
+
+    for (const {pattern, replacement} of soundNormalizations) {
+        word = word.replace(pattern, replacement);
+    }
+
+    // Normaliser les terminaisons
+    const endingNormalizations = [
+        // Terminaisons en é
+        { pattern: /ées?$/, replacement: 'é' },
+        { pattern: /er$/, replacement: 'é' },
+        { pattern: /et$/, replacement: 'é' },
+        
+        // Cas spéciaux de consonnes finales
+        { pattern: /re$/, replacement: 'r' },
+        { pattern: /me$/, replacement: 'm' },
+        { pattern: /le$/, replacement: 'l' },
+        { pattern: /te$/, replacement: 't' },
+        { pattern: /ne$/, replacement: 'n' }
+    ];
+
+    for (const {pattern, replacement} of endingNormalizations) {
+        if (word.match(pattern)) {
+            return word.replace(pattern, replacement);
+        }
+    }
+    
+    return word;
 }
 
 // Interface utilisateur simple
@@ -300,6 +309,8 @@ function createSyllableCounter() {
                 editor.innerText += line.trim() + '\n';
             });
             
+            updateAnalysis();
+            
             // Feedback visuel
             pasteButton.classList.add('pasted');
             pasteButton.textContent = '✓ Collé !';
@@ -315,9 +326,8 @@ function createSyllableCounter() {
 
     // Ajouter la fonction de copie
     copyButton.addEventListener('click', () => {
-        const lines = Array.from(editor.children)
-            .map(line => line.textContent.trim())
-            .filter(text => text.length > 0)
+        const lines = editor.innerText.split('\n')
+            .filter(line => line.trim())
             .join('\n');
 
         navigator.clipboard.writeText(lines).then(() => {
@@ -398,4 +408,4 @@ function createSyllableCounter() {
 }
 
 // Initialiser le compteur
-createSyllableCounter(); 
+createSyllableCounter();
