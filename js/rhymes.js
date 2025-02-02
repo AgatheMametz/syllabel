@@ -4,10 +4,43 @@ function normalizeEnding(word) {
     const isEntException = ENT_EXCEPTIONS.has(word) || 
                           ENT_EXCEPTIONS.has(word.replace(/s$/, ''));
 
+    // Normaliser d'abord les terminaisons importantes
+    const primaryEndings = [
+        // Cas spéciaux de prononciation
+        { pattern: /pays?$/, replacement: 'péi' },     // pays -> péi
+        
+        // Sons en "i"
+        { pattern: /id$/, replacement: 'i' },          // nid -> i
+        { pattern: /it$/, replacement: 'i' },          // petit -> i
+        { pattern: /i$/, replacement: 'i' },           // ami -> i
+        
+        // Sons nasaux
+        { pattern: /[aâeê]nts?$/, replacement: 'en' }, // temps, enfants
+        { pattern: /[aâeê]nds?$/, replacement: 'en' }, // grand, prend
+        { pattern: /[aâeê]mps?$/, replacement: 'en' }, // temps, champs
+        { pattern: /[aâeê]ns?$/, replacement: 'en' },  // an, en
+        
+        // Sons en "er/ère"
+        { pattern: /([^fè])er$/, replacement: 'é' },   // er -> é sauf après f ou è
+        { pattern: /fer$/, replacement: 'ère' },       // fer -> ère
+        { pattern: /fère?s?$/, replacement: 'ère' },   // fère(s) -> ère
+        { pattern: /ère?s?$/, replacement: 'ère' },    // ère(s) -> ère
+        
+        // Sons en "ou"
+        { pattern: /oute?s?$/, replacement: 'out' },   // route -> out
+        { pattern: /outte?s?$/, replacement: 'out' }   // goutte -> out
+    ];
+
+    for (const {pattern, replacement} of primaryEndings) {
+        if (word.match(pattern)) {
+            return word.replace(pattern, replacement);
+        }
+    }
+
     if (!isEntException) {
-        // Traiter d'abord les terminaisons verbales
+        // Traiter les terminaisons verbales
         const verbEndings = [
-            { pattern: /issent$/, replacement: 'is' },
+            { pattern: /issent$/, replacement: 'isse' },
             { pattern: /oncent$/, replacement: 'once' },
             { pattern: /ent$/, replacement: 'e' }
         ];
@@ -39,12 +72,15 @@ function normalizeEnding(word) {
         word = word.replace(pattern, replacement);
     }
 
-    // Normaliser les terminaisons
+    // Normaliser les autres terminaisons
     const endingNormalizations = [
-        // Terminaisons en é
+        // Autres terminaisons en é
         { pattern: /ées?$/, replacement: 'é' },
-        { pattern: /er$/, replacement: 'é' },
-        { pattern: /et$/, replacement: 'é' },
+        { pattern: /ez$/, replacement: 'é' },
+        { pattern: /é[es]?$/, replacement: 'é' },
+        
+        // Sons en "isse"
+        { pattern: /isses?$/, replacement: 'isse' },
         
         // Cas spéciaux de consonnes finales
         { pattern: /re$/, replacement: 'r' },
@@ -102,6 +138,9 @@ function findCommonEndings(words) {
     const groups = [];
     const usedWords = new Set();
     
+    // Liste des sons qui peuvent former une rime même seuls
+    const validSingleSounds = new Set(['i', 'é', 'è', 'a', 'o', 'u', 'r', 'l', 'm', 'n']);
+    
     for (let i = 0; i < words.length; i++) {
         if (usedWords.has(words[i])) continue;
         
@@ -112,8 +151,15 @@ function findCommonEndings(words) {
             if (usedWords.has(words[j])) continue;
             
             const length = getLongestCommonSuffixLength(words[i], words[j]);
-            if (words[i] === words[j] || length >= 2 || 
-                (length === 1 && words[i].slice(-1).match(/[éèêëàâïîôûù]/))) {
+            const commonEnd = words[i].slice(-length);
+            
+            // Accepter si :
+            // - Les mots sont identiques
+            // - La terminaison commune fait au moins 2 caractères
+            // - OU c'est un son valide même seul
+            if (words[i] === words[j] || 
+                length >= 2 || 
+                (length === 1 && validSingleSounds.has(commonEnd))) {
                 currentGroup.push(words[j]);
                 minCommonLength = Math.min(minCommonLength, length);
             }
