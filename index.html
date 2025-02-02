@@ -18,6 +18,7 @@
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            user-select: text;
         }
 
         .line-analysis {
@@ -45,8 +46,9 @@
 
         .line-number {
             color: #888;
-            font-size: 0.8em;
+            font-size: 0.9em;
             text-align: right;
+            user-select: none;
         }
 
         .syllable-count, .rhyme {
@@ -55,6 +57,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             font-size: 0.9em;
+            user-select: none;
         }
 
         .syllable-count {
@@ -79,6 +82,8 @@
             transition: all 0.2s;
             cursor: text;
             min-width: 0;
+            white-space: pre-wrap;
+            -webkit-user-modify: read-write-plaintext-only;
         }
 
         .line-text:empty::before {
@@ -150,6 +155,65 @@
 
         .paste-icon {
             font-size: 16px;
+        }
+
+        ::selection {
+            background-color: #b3d4fc;
+            color: #000;
+        }
+
+        .editor-wrapper {
+            display: grid;
+            grid-template-columns: 30px minmax(0, 1fr) 100px;
+            gap: 10px;
+            align-items: start;
+        }
+
+        .text-editor {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: .9rem;
+            min-height: 300px;
+            padding: 8px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            background: transparent;
+            border: none;
+            outline: none;
+        }
+
+        .text-editor:focus {
+            outline: none;
+        }
+
+        .line-numbers, .analysis-column {
+            font-family: 'Monaco', 'Consolas', monospace;
+            padding: 8px 0;
+            user-select: none;
+            color: #666;
+        }
+
+        .line-number, .syllable-count, .rhyme {
+            text-align: right;
+            font-size: 0.9em;
+        }
+
+        .analysis-column {
+            display: grid;
+            grid-template-columns: 50px 50px;
+        }
+
+        .syllable-count {
+            color: #2196F3;
+        }
+
+        .rhyme {
+            font-weight: bold;
+        }
+
+        .syllable-count.empty-line,
+        .rhyme.empty-line {
+            height: 1.5em;
+            visibility: hidden;
         }
     </style>
 </head>

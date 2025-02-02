@@ -36,11 +36,13 @@ function countSyllables(word) {
 
 function getRhyme(word) {
     if (!word) return '';
-    word = word.toLowerCase();
+    
+    // Nettoyer la ponctuation
+    word = word.toLowerCase().replace(/[.,!?;:]/g, '');
     
     // Ignorer les terminaisons verbales en "ent"
     if (word.endsWith('ent')) {
-        word = word.slice(0, -3) + 'e';  // On remplace par 'e' pour garder la sonorité
+        word = word.slice(0, -3) + 'e';
     }
     
     const vowels = 'aeiouyéèêëàâïîôûù';
@@ -90,13 +92,69 @@ function createSyllableCounter() {
                     Copier le texte
                 </button>
             </div>
-            <div id="analysis"></div>
+            <div class="editor-wrapper">
+                <div class="line-numbers"></div>
+                <div class="text-editor" contenteditable="true" spellcheck="false"></div>
+                <div class="analysis-column">
+                    <div class="syllable-counts"></div>
+                    <div class="rhyme-list"></div>
+                </div>
+            </div>
         </div>
     `;
 
-    const analysis = container.querySelector('#analysis');
+    const editor = container.querySelector('.text-editor');
+    const lineNumbers = container.querySelector('.line-numbers');
+    const syllableCounts = container.querySelector('.syllable-counts');
+    const rhymeList = container.querySelector('.rhyme-list');
     const copyButton = container.querySelector('#copyButton');
     const pasteButton = container.querySelector('#pasteButton');
+
+    function updateAnalysis() {
+        const lines = editor.innerText.split('\n');
+        
+        // Mise à jour des numéros de ligne
+        lineNumbers.innerHTML = lines.map((_, i) => 
+            `<div class="line-number">${i + 1}</div>`
+        ).join('');
+
+        // Mise à jour des analyses
+        const syllableResults = lines.map(line => {
+            // Ajouter une div vide avec la même hauteur pour les lignes vides
+            if (!line.trim()) {
+                return '<div class="syllable-count empty-line">&nbsp;</div>';
+            }
+            const words = line.trim().split(/\s+/);
+            const count = words.reduce((total, word) => 
+                total + (word ? countSyllables(word) : 0), 0);
+            return `<div class="syllable-count" data-count="${count}">${count || ''}</div>`;
+        }).join('');
+
+        const rhymeResults = lines.map(line => {
+            // Ajouter une div vide avec la même hauteur pour les lignes vides
+            if (!line.trim()) {
+                return '<div class="rhyme empty-line">&nbsp;</div>';
+            }
+            const words = line.trim().split(/\s+/);
+            const lastWord = words[words.length - 1];
+            const rhyme = lastWord ? getRhyme(lastWord) : '';
+            return `<div class="rhyme" data-rhyme="${rhyme}">${rhyme}</div>`;
+        }).join('');
+
+        syllableCounts.innerHTML = syllableResults;
+        rhymeList.innerHTML = rhymeResults;
+
+        colorizeElements();
+    }
+
+    editor.addEventListener('input', updateAnalysis);
+    editor.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.execCommand('insertLineBreak');
+            updateAnalysis();
+        }
+    });
 
     // Fonction pour coller du texte
     pasteButton.addEventListener('click', async () => {
@@ -105,11 +163,11 @@ function createSyllableCounter() {
             const lines = text.split('\n').filter(line => line.trim());
             
             // Supprimer toutes les lignes existantes
-            analysis.innerHTML = '';
+            editor.innerText = '';
             
             // Créer une nouvelle ligne pour chaque ligne du texte
             lines.forEach(line => {
-                createNewLine(line.trim());
+                editor.innerText += line.trim() + '\n';
             });
             
             // Feedback visuel
@@ -127,7 +185,7 @@ function createSyllableCounter() {
 
     // Ajouter la fonction de copie
     copyButton.addEventListener('click', () => {
-        const lines = Array.from(analysis.querySelectorAll('.line-text'))
+        const lines = Array.from(editor.children)
             .map(line => line.textContent.trim())
             .filter(text => text.length > 0)
             .join('\n');
@@ -143,29 +201,20 @@ function createSyllableCounter() {
         });
     });
 
-    function updateColors() {
-        const lines = Array.from(analysis.children);
-        const rhymeGroups = {};
+    function colorizeElements() {
+        const colors = ['#2196F3', '#4CAF50', '#FF9800', '#E91E63', '#9C27B0', '#009688', '#673AB7'];
+        
+        // Coloriser les syllabes
+        const syllableCounts = document.querySelectorAll('.syllable-count[data-count]');
         const syllableGroups = {};
-
-        // Grouper par rimes et syllabes
-        lines.forEach(line => {
-            const rhyme = line.querySelector('.rhyme').textContent;
-            const syllables = line.querySelector('.syllable-count').textContent;
-            if (rhyme) {
-                rhymeGroups[rhyme] = (rhymeGroups[rhyme] || []);
-                rhymeGroups[rhyme].push(line.querySelector('.rhyme'));
-            }
-            syllableGroups[syllables] = (syllableGroups[syllables] || []);
-            syllableGroups[syllables].push(line.querySelector('.syllable-count'));
-        });
-
-        // Assigner les couleurs
-        const colors = ['#2196F3', '#4CAF50', '#FF9800', '#E91E63', '#9C27B0'];
-        Object.values(rhymeGroups).forEach((group, i) => {
-            if (group.length > 1) {
-                const color = colors[i % colors.length];
-                group.forEach(el => el.style.color = color);
+        
+        syllableCounts.forEach(el => {
+            const count = el.dataset.count;
+            if (count) {
+                if (!syllableGroups[count]) {
+                    syllableGroups[count] = [];
+                }
+                syllableGroups[count].push(el);
             }
         });
 
@@ -175,150 +224,31 @@ function createSyllableCounter() {
                 group.forEach(el => el.style.color = color);
             }
         });
-    }
 
-    function createNewLine(initialText = '', insertAfter = null) {
-        const div = document.createElement('div');
-        div.className = 'line-analysis';
-        div.innerHTML = `
-            <span class="line-number"></span>
-            <span class="line-text" contenteditable="true" placeholder="Écrivez ici...">${initialText}</span>
-            <span class="syllable-count"></span>
-            <span class="rhyme"></span>
-        `;
+        // Coloriser les rimes
+        const rhymes = document.querySelectorAll('.rhyme[data-rhyme]');
+        const rhymeGroups = {};
         
-        const lineText = div.querySelector('.line-text');
-        const syllableCount = div.querySelector('.syllable-count');
-        const rhymeSpan = div.querySelector('.rhyme');
-        const lineNumber = div.querySelector('.line-number');
-
-        function updateLineNumbers() {
-            let currentNumber = 1;
-            Array.from(analysis.children).forEach(line => {
-                const text = line.querySelector('.line-text').textContent.trim();
-                const numberSpan = line.querySelector('.line-number');
-                if (text) {
-                    numberSpan.textContent = currentNumber++;
-                } else {
-                    numberSpan.textContent = '';
+        rhymes.forEach(el => {
+            const rhyme = el.dataset.rhyme;
+            if (rhyme) {
+                if (!rhymeGroups[rhyme]) {
+                    rhymeGroups[rhyme] = [];
                 }
-            });
-        }
-
-        lineText.addEventListener('input', () => {
-            const text = lineText.textContent.trim();
-            const words = text.split(/\s+/);
-            
-            if (!text) {
-                syllableCount.textContent = '';
-                rhymeSpan.textContent = '';
-                div.classList.remove('has-content');
-            } else {
-                const syllables = words.reduce((total, word) => {
-                    return total + (word ? countSyllables(word) : 0);
-                }, 0);
-                
-                const lastWord = words[words.length - 1];
-                const rhyme = lastWord ? getRhyme(lastWord) : '';
-                
-                syllableCount.textContent = syllables;
-                rhymeSpan.textContent = rhyme;
-                div.classList.add('has-content');
-            }
-            
-            updateLineNumbers();
-            updateColors();
-            checkGrouping();
-        });
-
-        lineText.addEventListener('keydown', (e) => {
-            const currentLine = div;
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                // Insérer la nouvelle ligne après la ligne courante
-                const nextLine = currentLine.nextElementSibling;
-                const newLine = createNewLine('', currentLine);
-                if (nextLine) {
-                    analysis.insertBefore(newLine, nextLine);
-                } else {
-                    analysis.appendChild(newLine);
-                }
-                // Focus sur la nouvelle ligne
-                newLine.querySelector('.line-text').focus();
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                const prev = currentLine.previousElementSibling;
-                if (prev) {
-                    prev.querySelector('.line-text').focus();
-                }
-            } else if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                const next = currentLine.nextElementSibling;
-                if (next) {
-                    next.querySelector('.line-text').focus();
-                } else {
-                    createNewLine();
-                }
-            } else if (e.key === 'Delete' || e.key === 'Backspace') {
-                if (!lineText.textContent.trim()) {
-                    e.preventDefault();
-                    const next = currentLine.nextElementSibling;
-                    const prev = currentLine.previousElementSibling;
-                    currentLine.remove();
-                    if (next) {
-                        next.querySelector('.line-text').focus();
-                    } else if (prev) {
-                        prev.querySelector('.line-text').focus();
-                    }
-                    updateLineNumbers();
-                    checkGrouping();
-                }
+                rhymeGroups[rhyme].push(el);
             }
         });
 
-        // Si insertAfter est spécifié, insérer après cet élément
-        if (insertAfter) {
-            const nextLine = insertAfter.nextElementSibling;
-            if (nextLine) {
-                analysis.insertBefore(div, nextLine);
+        Object.values(rhymeGroups).forEach((group, i) => {
+            if (group.length > 1) {
+                const color = colors[i % colors.length];
+                group.forEach(el => el.style.color = color);
             } else {
-                analysis.appendChild(div);
-            }
-        } else {
-            analysis.appendChild(div);
-        }
-
-        lineText.focus();
-
-        if (initialText) {
-            lineText.dispatchEvent(new Event('input'));
-        }
-
-        return div;
-    }
-
-    function checkGrouping() {
-        const lines = Array.from(analysis.children);
-        lines.forEach((line, index) => {
-            const text = line.querySelector('.line-text').textContent.trim();
-            const nextLine = lines[index + 1];
-            
-            if (nextLine) {
-                const nextText = nextLine.querySelector('.line-text').textContent.trim();
-                if (text && nextText) {
-                    line.classList.add('group-with-next');
-                } else {
-                    line.classList.remove('group-with-next');
-                }
-            } else {
-                line.classList.remove('group-with-next');
+                group.forEach(el => el.style.color = ''); // Réinitialiser la couleur pour les rimes uniques
             }
         });
     }
 
-    // Créer la première ligne
-    createNewLine();
-    
     document.body.appendChild(container);
 }
 
