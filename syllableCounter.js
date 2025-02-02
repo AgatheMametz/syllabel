@@ -1,6 +1,13 @@
 function countSyllables(word) {
+    if (!word) return 0;
+    
     // Convertir le mot en minuscules
     word = word.toLowerCase();
+    
+    // Ignorer les terminaisons verbales en "ent"
+    if (word.endsWith('ent')) {
+        word = word.slice(0, -3) + 'e';  // On remplace par 'e' pour garder la sonorité
+    }
     
     // Définir les voyelles en français
     const vowels = ['a', 'e', 'i', 'o', 'u', 'y', 'é', 'è', 'ê', 'ë', 'à', 'â', 'ï', 'î', 'ô', 'û', 'ù'];
@@ -30,6 +37,11 @@ function countSyllables(word) {
 function getRhyme(word) {
     if (!word) return '';
     word = word.toLowerCase();
+    
+    // Ignorer les terminaisons verbales en "ent"
+    if (word.endsWith('ent')) {
+        word = word.slice(0, -3) + 'e';  // On remplace par 'e' pour garder la sonorité
+    }
     
     const vowels = 'aeiouyéèêëàâïîôûù';
     const chars = word.split('');
