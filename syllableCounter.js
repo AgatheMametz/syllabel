@@ -45,14 +45,22 @@ function getRhyme(word) {
     
     if (lastVowelIndex === -1) return word.slice(-3);
     
-    // Trouver la consonne qui précède la dernière voyelle
-    let startIndex = lastVowelIndex;
-    while (startIndex > 0 && !vowels.includes(chars[startIndex - 1])) {
-        startIndex--;
+    // Trouver la voyelle précédente (pour avoir le groupe complet)
+    let previousVowelIndex = -1;
+    for (let i = lastVowelIndex - 1; i >= 0; i--) {
+        if (vowels.includes(chars[i])) {
+            previousVowelIndex = i;
+            break;
+        }
     }
     
-    // Retourner depuis la consonne précédant la dernière voyelle jusqu'à la fin
-    return word.slice(startIndex);
+    // Si le mot est court, on prend tout le mot
+    if (word.length <= 4) {
+        return word;
+    }
+    
+    // Prendre les 4 derniers caractères maximum
+    return word.slice(-4);
 }
 
 // Interface utilisateur simple
@@ -60,16 +68,50 @@ function createSyllableCounter() {
     const container = document.createElement('div');
     container.innerHTML = `
         <div class="editor-container">
+            <div class="button-group">
+                <button id="pasteButton" class="action-button paste-button">
+                    <span class="paste-icon">📥</span>
+                    Coller du texte
+                </button>
+                <button id="copyButton" class="action-button copy-button">
+                    <span class="copy-icon">📋</span>
+                    Copier le texte
+                </button>
+            </div>
             <div id="analysis"></div>
-            <button id="copyButton" class="copy-button">
-                <span class="copy-icon">📋</span>
-                Copier le texte
-            </button>
         </div>
     `;
 
     const analysis = container.querySelector('#analysis');
     const copyButton = container.querySelector('#copyButton');
+    const pasteButton = container.querySelector('#pasteButton');
+
+    // Fonction pour coller du texte
+    pasteButton.addEventListener('click', async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            // Supprimer toutes les lignes existantes
+            analysis.innerHTML = '';
+            
+            // Créer une nouvelle ligne pour chaque ligne du texte
+            lines.forEach(line => {
+                createNewLine(line.trim());
+            });
+            
+            // Feedback visuel
+            pasteButton.classList.add('pasted');
+            pasteButton.textContent = '✓ Collé !';
+            setTimeout(() => {
+                pasteButton.classList.remove('pasted');
+                pasteButton.innerHTML = '<span class="paste-icon">📥</span> Coller du texte';
+            }, 2000);
+            
+        } catch (err) {
+            console.error('Erreur lors du collage:', err);
+        }
+    });
 
     // Ajouter la fonction de copie
     copyButton.addEventListener('click', () => {
@@ -123,14 +165,14 @@ function createSyllableCounter() {
         });
     }
 
-    function createNewLine() {
+    function createNewLine(initialText = '') {
         const div = document.createElement('div');
         div.className = 'line-analysis';
         div.innerHTML = `
             <span class="line-number">${analysis.children.length + 1}</span>
+            <span class="line-text" contenteditable="true" placeholder="Écrivez ici...">${initialText}</span>
             <span class="syllable-count">0</span>
             <span class="rhyme">-</span>
-            <span class="line-text" contenteditable="true" placeholder="Écrivez ici..."></span>
         `;
         
         const lineText = div.querySelector('.line-text');
@@ -178,6 +220,11 @@ function createSyllableCounter() {
 
         analysis.appendChild(div);
         lineText.focus();
+
+        // Déclencher l'événement input si on a du texte initial
+        if (initialText) {
+            lineText.dispatchEvent(new Event('input'));
+        }
     }
 
     // Créer la première ligne
