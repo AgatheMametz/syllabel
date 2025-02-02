@@ -2,6 +2,11 @@
 function countSyllables(word) {
     if (!word) return 0;
     
+    // Convertir les nombres en texte
+    if (/^\d+$/.test(word) || /^[A-Za-z]\d+$/.test(word)) {
+        word = convertNumberToText(word);
+    }
+    
     word = word.toLowerCase();
     
     if (word.endsWith('ent')) {

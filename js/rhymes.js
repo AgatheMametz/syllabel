@@ -66,6 +66,11 @@ function normalizeEnding(word) {
 function getRhyme(word) {
     if (!word) return '';
     
+    // Convertir les nombres en texte
+    if (/^\d+$/.test(word) || /^[A-Za-z]\d+$/.test(word)) {
+        word = convertNumberToText(word);
+    }
+    
     word = word.toLowerCase()
         .replace(/[.,!?;:…\s]/g, '')
         .replace(/[«»""''\-]/g, '');
